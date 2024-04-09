@@ -25,10 +25,10 @@ import warnings
 warnings.filterwarnings('ignore')
 # %matplotlib inline
 
-import urllib
-print("Password/Enpoint IP for localtunnel is:",urllib.request.urlopen('https://ipv4.icanhazip.com').read().decode('utf8').strip("\n"))
+#import urllib
+#print("Password/Enpoint IP for localtunnel is:",urllib.request.urlopen('https://ipv4.icanhazip.com').read().decode('utf8').strip("\n"))
 
-!pip install -q streamlit
+#!pip install -q streamlit
 
 import streamlit as st
 import pandas as pd
@@ -88,4 +88,4 @@ if st.button('Generate Pandas Profiling Report'):
     profile = generate_report()
     st_profile_report(profile)
 
-! pip install https://github.com/pandas-profiling/pandas-profiling/archive/master.zip
+#! pip install https://github.com/pandas-profiling/pandas-profiling/archive/master.zip
