@@ -7,12 +7,12 @@ Original file is located at
     https://colab.research.google.com/drive/1UxPgiBw8NQGOY1DWAjCdnpbpWvuK59Eh
 """
 
-# Commented out IPython magic to ensure Python compatibility.
+import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-from sklearn.decomposition import PCA # dimensionality reduction
+from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.cluster import AgglomerativeClustering
 import scipy.cluster.hierarchy as sch
@@ -21,71 +21,104 @@ from sklearn.linear_model import Ridge
 from sklearn.linear_model import SGDRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import median_absolute_error
-import warnings
-warnings.filterwarnings('ignore')
-# %matplotlib inline
+from sklearn.preprocessing import LabelEncoder
 
-#import urllib
-#print("Password/Enpoint IP for localtunnel is:",urllib.request.urlopen('https://ipv4.icanhazip.com').read().decode('utf8').strip("\n"))
+# Load the dataset
+data = pd.read_csv("/content/Leads Report 2021 Numeric Data.csv")
 
-#!pip install -q streamlit
+# Setting up page title and layout
+st.title('Lead Report Analysis')
+st.set_option('deprecation.showPyplotGlobalUse', False)
 
-import streamlit as st
-import pandas as pd
+# Display the dataset
+st.subheader('Dataset')
+st.dataframe(data)
 
-# Function to process the uploaded file
-def process_file(uploaded_file):
-    if uploaded_file is not None:
-        # Read the uploaded file as a DataFrame
-        df = pd.read_csv(uploaded_file)
-        # Display the DataFrame
-        st.write(df)
+# Data description
+st.subheader('Data Description')
+st.write(data.describe())
 
-# Main function for Streamlit app
-def main():
-    st.title("Upload and Process CSV file")
+# Checking null values
+st.subheader('Null Values Check')
+st.bar_chart(data.isna().sum())
 
-    # Boolean variable to track if the initial upload button is clicked
-    upload_clicked = False
+# Heatmap
+st.subheader('Correlation Heatmap')
+plt.figure(figsize=(20, 20))
+sns.heatmap(data.corr('pearson'), vmin=-1, vmax=1, cmap='coolwarm', square=True, annot=True)
+st.pyplot()
 
-    # Add a file uploader widget
-    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+# Distribution Plot
+st.subheader('Distribution Plot')
+sns.distplot(data['Capability of Logistics Service Providers'])
+st.pyplot()
 
-    # Add a button to trigger file processing
-    if st.button("Process File"):
-        # Set upload_clicked to True when the Process File button is clicked
-        upload_clicked = True
+# Probplot
+st.subheader('Probplot')
+fig = plt.figure()
+res = stats.probplot(data['Capability of Logistics Service Providers'], plot=plt)
+st.pyplot()
 
-    # Check if upload_clicked is True before showing the additional button
-    if upload_clicked:
-        # Additional button to show up only when the initial button is clicked
-        if uploaded_file is not None:
-            # Function to process the uploaded file
-            def process_file():
-                # Read the uploaded file as a DataFrame
-                df = pd.read_csv(uploaded_file)
-                # Display the DataFrame
-                st.write(df)
+# Scatter plot
+st.subheader('Scatter Plot')
+sns.scatterplot(x=data['Final Score'], y=data['Quality of Logistics Services'])
+st.pyplot()
 
-            # Button to trigger file processing
-            if st.button("Show Uploaded Data"):
-                process_file()
+# PCA
+st.subheader('Principal Component Analysis (PCA)')
+pca = PCA(n_components=10)
+principalComponents = pca.fit_transform(data.drop('Final Score', axis=1))
+principalDf = pd.DataFrame(data=principalComponents, columns=['PCA1', 'PCA2', 'PCA3', 'PCA4', 'PCA5', 'PCA6', 'PCA7', 'PCA8', 'PCA9', 'PCA10'], index=data.index)
 
-if __name__ == "__main__":
-    main()
+kmeans = KMeans(n_clusters=4)
+kmeans.fit(principalDf)
+principalDf['PCA_SCORE'] = kmeans.predict(principalDf)
 
-import pandas as pd
-import pandas_profiling
-from pandas_profiling import ProfileReport
-# Function to generate pandas profiling report
-def generate_report():
-    profile = ProfileReport(data, title='Pandas Profiling Report', explorative=True)
-    return profile
+st.write(principalDf.head())
 
-# Add a Streamlit button
-if st.button('Generate Pandas Profiling Report'):
-    # Generate and display the report
-    profile = generate_report()
-    st_profile_report(profile)
+# Mean Squared Error Calculation
+MSEValue = mean_squared_error(principalDf['PCA_SCORE'], data['Final Score'], multioutput='uniform_average')
+st.write('Mean Squared Error Value is: ', MSEValue)
 
-#! pip install https://github.com/pandas-profiling/pandas-profiling/archive/master.zip
+# Median Absolute Error Calculation
+MdSEValue = median_absolute_error(principalDf['PCA_SCORE'], data['Final Score'])
+st.write('Median Absolute Error Value is: ', MdSEValue)
+
+# Dendrogram
+st.subheader('Dendrogram')
+figure, ax = plt.subplots(1, 1, figsize=(15, 9))
+dendrogram = sch.dendrogram(sch.linkage(data.drop('Final Score', axis=1), method='complete'), labels=data.index, ax=ax)
+st.pyplot()
+
+# Splitting Data
+X_train, X_test, y_train, y_test = train_test_split(data.drop('Final Score', axis=1), data['Final Score'], test_size=0.4, random_state=44, shuffle=True)
+
+# Ridge Regression
+st.subheader('Ridge Regression')
+RidgeRegressionModel = Ridge(alpha=.2, random_state=33)
+RidgeRegressionModel.fit(X_train, y_train)
+
+train_score = RidgeRegressionModel.score(X_train, y_train)
+test_score = RidgeRegressionModel.score(X_test, y_test)
+coefs = RidgeRegressionModel.coef_
+intercept = RidgeRegressionModel.intercept_
+
+st.write('Train Score:', train_score)
+st.write('Test Score:', test_score)
+st.write('Coefficients:', coefs)
+st.write('Intercept:', intercept)
+
+# SGD Regression
+st.subheader('SGD Regression')
+SGDRegressionModel = SGDRegressor(alpha=.004, random_state=33, penalty='l2', loss='huber')
+SGDRegressionModel.fit(X_train, y_train)
+
+train_score_sgd = SGDRegressionModel.score(X_train, y_train)
+test_score_sgd = SGDRegressionModel.score(X_test, y_test)
+coefs_sgd = SGDRegressionModel.coef_
+intercept_sgd = SGDRegressionModel.intercept_
+
+st.write('Train Score:', train_score_sgd)
+st.write('Test Score:', test_score_sgd)
+st.write('Coefficients:', coefs_sgd)
+st.write('Intercept:', intercept_sgd)
