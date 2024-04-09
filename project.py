@@ -122,3 +122,42 @@ st.write('Train Score:', train_score_sgd)
 st.write('Test Score:', test_score_sgd)
 st.write('Coefficients:', coefs_sgd)
 st.write('Intercept:', intercept_sgd)
+
+
+
+import streamlit as st
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+import scipy.cluster.hierarchy as sch
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import Ridge
+from sklearn.linear_model import SGDRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import median_absolute_error
+from visualizations import *
+
+# Load the dataset
+data = pd.read_csv("/content/Leads Report 2021 Numeric Data.csv")
+
+# Setting up page title and layout
+st.title('Lead Report Analysis')
+st.set_option('deprecation.showPyplotGlobalUse', False)
+
+# Display visualizations
+display_dataset(data)
+display_data_description(data)
+display_null_values(data)
+display_correlation_heatmap(data)
+display_distribution_plot(data)
+display_probplot(data)
+display_scatter_plot(data)
+
+# Principal Component Analysis
+pca = PCA(n_components=10)
+principalComponents = pca.fit_transform(data.drop('Final Score', axis=1))
+principalDf = pd.DataFrame(data=principalComponents, columns=['PCA1', 'PCA2', 'PCA3', 'PCA4', 'PCA5', 'PCA6', 'PCA7', 'PCA8', 'PCA9', 'PCA10'], index=data.index)
+display_principal_component_analysis(principalDf)
+
+# Dendrogram
+display_dendrogram(data)
